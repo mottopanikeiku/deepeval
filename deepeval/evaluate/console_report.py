@@ -150,11 +150,11 @@ class EvaluationConsoleReport:
     def _should_skip_case(
         case: TestResult, display_option: TestRunResultDisplay
     ) -> bool:
-        """Mirrors ``TestRunManager._should_skip_test_case``."""
-        if display_option == TestRunResultDisplay.PASSING and not case.success:
-            return True
-        elif display_option == TestRunResultDisplay.FAILING and case.success:
-            return True
+        """Cases without a verdict belong only in the unfiltered report."""
+        if display_option == TestRunResultDisplay.PASSING:
+            return case.success is not True
+        elif display_option == TestRunResultDisplay.FAILING:
+            return case.success is not False
         return False
 
     def _build_display_elements(
@@ -313,7 +313,11 @@ class EvaluationConsoleReport:
         if not displayed_any and self.test_results:
             total = len(self.test_results)
             plural = "s" if total != 1 else ""
-            if display_option == TestRunResultDisplay.FAILING:
+            if any(case.success is None for case in self.test_results):
+                renderables.append(
+                    Panel(f"No {display_option.value} test cases to display.")
+                )
+            elif display_option == TestRunResultDisplay.FAILING:
                 renderables.append(
                     Panel(
                         f"[{DEEPEVAL_GREEN} bold]✅ All {total} test case{plural} passed — no failing test cases to display.[/{DEEPEVAL_GREEN} bold]",

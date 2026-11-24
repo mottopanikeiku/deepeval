@@ -253,3 +253,29 @@ def test_display_option_passing_all_hidden_shows_all_failed_note():
 
     assert "failing_case" not in text
     assert "All 1 test case failed — no passing test cases to display." in text
+
+
+def test_verdict_filters_exclude_a_classification_without_an_expected_label():
+    from deepeval import evaluate
+    from deepeval.classifiers import Classifier
+    from deepeval.evaluate.configs import DisplayConfig
+    from deepeval.test_case import LLMTestCase
+    from deepeval.test_run.test_run import TestRunResultDisplay
+    from tests.test_classifiers.fakes import ReplyModel
+
+    result = evaluate(
+        test_cases=[LLMTestCase(input="Price?", name="ungraded")],
+        classifiers=[
+            Classifier(name="topic", labels=["pricing"], model=ReplyModel())
+        ],
+        display_config=DisplayConfig(print_results=False, show_indicator=False),
+    )
+    report = EvaluationConsoleReport(result.test_results)
+    assert "ungraded" in _render_text(report)
+
+    for option in (TestRunResultDisplay.PASSING, TestRunResultDisplay.FAILING):
+        text = _render_text(report, display_option=option)
+        assert "ungraded" not in text
+        assert f"No {option.value} test cases to display." in text
+        assert "All 1 test case" not in text
+        assert "Aggregate Classifiers" in text
